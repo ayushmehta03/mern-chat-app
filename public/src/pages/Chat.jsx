@@ -1,58 +1,57 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from "axios";
 import styled from "styled-components";
-import { useNavigate } from 'react-router';
-import { allUsersRoute } from '../Utils/APIRoutes';
+import { useNavigate } from 'react-router-dom';
 import Contacts from '../components/Contacts';
 import Welcome from '../components/Welcome';
 import ChatContainer from '../components/ChatContainer';
+import { allUsersRoute } from '../Utils/APIRoutes';
 import io from "socket.io-client";
 
-const host = "https://ayush-mern-chat-app.onrender.com"; // ✅ updated
+const host = "https://ayush-mern-chat-app.onrender.com"; // ✅ Use same host for socket and API
 
 const Chat = () => {
   const socket = useRef();
   const navigate = useNavigate();
-  const [contact, setContact] = useState([]);
+  const [contacts, setContacts] = useState([]);
   const [currentUser, setCurrentUser] = useState(undefined);
   const [currentChat, setCurrentChat] = useState(undefined);
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    const checkUser = async () => {
-      if (!localStorage.getItem('chat-app-user')) {
-        navigate('/login');
+    const getUser = async () => {
+      const storedUser = localStorage.getItem("chat-app-user");
+      if (!storedUser) {
+        navigate("/login");
       } else {
-        setCurrentUser(JSON.parse(localStorage.getItem("chat-app-user")));
+        setCurrentUser(JSON.parse(storedUser));
         setIsLoaded(true);
       }
     };
-    checkUser();
+    getUser();
   }, [navigate]);
 
   useEffect(() => {
     if (currentUser) {
-      socket.current = io(host); // ✅ use your backend link
+      socket.current = io(host);
       socket.current.emit("add-user", currentUser._id);
     }
   }, [currentUser]);
 
   useEffect(() => {
-    const getContacts = async () => {
-      if (currentUser) {
-        if (currentUser.isAvatarImageSet) {
-          try {
-            const response = await axios.get(`${host}/api/auth/allusers/${currentUser._id}`); // ✅ full URL
-            setContact(response.data);
-          } catch (err) {
-            console.error("Failed to fetch contacts", err);
-          }
-        } else {
-          navigate("/setAvatar");
+    const fetchContacts = async () => {
+      if (currentUser && currentUser.isAvatarImageSet) {
+        try {
+          const response = await axios.get(`${allUsersRoute}/${currentUser._id}`);
+          setContacts(response.data);
+        } catch (error) {
+          console.error("Error fetching contacts:", error);
         }
+      } else if (currentUser) {
+        navigate("/setAvatar");
       }
     };
-    getContacts();
+    fetchContacts();
   }, [currentUser, navigate]);
 
   const handleChatChange = (chat) => {
@@ -62,13 +61,13 @@ const Chat = () => {
   return (
     <Container>
       <div className="container">
-        <Contacts
-          contacts={contact}
-          currentUser={currentUser}
-          changeChat={handleChatChange}
+        <Contacts 
+          contacts={contacts} 
+          currentUser={currentUser} 
+          changeChat={handleChatChange} 
         />
         {
-          isLoaded && currentChat === undefined ? (
+          isLoaded && !currentChat ? (
             <Welcome currentUser={currentUser} />
           ) : (
             <ChatContainer
@@ -89,15 +88,16 @@ const Container = styled.div`
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 1rem;
   align-items: center;
   background-color: #131324;
+
   .container {
     height: 85vh;
     width: 85vw;
     background-color: #00000076;
     display: grid;
     grid-template-columns: 25% 75%;
+
     @media screen and (min-width: 720px) and (max-width: 1080px) {
       grid-template-columns: 35% 65%;
     }

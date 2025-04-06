@@ -9,107 +9,125 @@ import { sendMessageRoute, getAllMessagesRoute } from '../Utils/APIRoutes';
 const ChatContainer = ({ currentChat, currentUser, socket }) => {
   const [messages, setMessages] = useState([]);
   const [arrivalMessage, setArrivalMessage] = useState(null);
-  const scrollRef = useRef();
+  const scrollRef = useRef(null);
 
+  // Fetch all messages when chat or user changes
   useEffect(() => {
     const fetchMessages = async () => {
-      if (currentChat) {
-        const response = await axios.post(getAllMessagesRoute, {
-          from: currentUser._id,
-          to: currentChat._id,
-        });
-        setMessages(response.data);
+      if (currentChat && currentUser) {
+        try {
+          const response = await axios.post(getAllMessagesRoute, {
+            from: currentUser._id,
+            to: currentChat._id,
+          });
+          setMessages(response.data);
+        } catch (err) {
+          console.error("Failed to fetch messages:", err);
+        }
       }
     };
     fetchMessages();
   }, [currentChat, currentUser]);
 
+  // Send a new message
   const handleSendMsg = useCallback(
     async (msg) => {
-      await axios.post(sendMessageRoute, {
-        from: currentUser._id,
-        to: currentChat._id,
-        message: msg,
-      });
+      try {
+        await axios.post(sendMessageRoute, {
+          from: currentUser._id,
+          to: currentChat._id,
+          message: msg,
+        });
 
-      socket.current.emit('send-msg', {
-        to: currentChat._id,
-        from: currentUser._id,
-        message: msg,
-      });
+        socket.current.emit('send-msg', {
+          to: currentChat._id,
+          from: currentUser._id,
+          message: msg,
+        });
 
-      const newMsg = {
-        fromSelf: true,
-        message: msg,
-      };
-      setMessages((prev) => [...prev, newMsg]);
+        const newMsg = {
+          fromSelf: true,
+          message: msg,
+        };
+        setMessages((prev) => [...prev, newMsg]);
+      } catch (err) {
+        console.error("Error sending message:", err);
+      }
     },
     [currentChat, currentUser, socket]
   );
 
+  // Listen for incoming messages
   useEffect(() => {
     if (socket.current) {
-      socket.current.off('msg-receive');
-      socket.current.on('msg-receive', (msg) => {
+      const handleReceiveMessage = (msg) => {
         setArrivalMessage({ fromSelf: false, message: msg });
-      });
+      };
+
+      socket.current.on('msg-receive', handleReceiveMessage);
+
+      return () => {
+        socket.current.off('msg-receive', handleReceiveMessage);
+      };
     }
   }, [socket]);
 
+  // Append received messages
   useEffect(() => {
     if (arrivalMessage) {
       setMessages((prev) => [...prev, arrivalMessage]);
     }
   }, [arrivalMessage]);
 
+  // Scroll to latest message
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
   return (
-    <>
-      {currentChat && (
-        <Container>
-          <div className="chat-header">
-            <div className="user-details">
-              <div className="avatar">
-                <img
-                  src={`data:image/svg+xml;base64,${currentChat.avatarImage}`}
-                  alt="current-user-avatar"
-                />
-              </div>
-              <div className="username">
-                <h3>{currentChat.username}</h3>
+    currentChat && (
+      <Container>
+        <div className="chat-header">
+          <div className="user-details">
+            <div className="avatar">
+              <img
+                src={`data:image/svg+xml;base64,${currentChat.avatarImage}`}
+                alt="avatar"
+              />
+            </div>
+            <div className="username">
+              <h3>{currentChat.username}</h3>
+            </div>
+          </div>
+          <Logout />
+        </div>
+
+        <div className="chat-messages">
+          {messages.map((message, index) => (
+            <div
+              key={message._id || uuidv4()}
+              ref={index === messages.length - 1 ? scrollRef : null}
+              className={`message ${message.fromSelf ? 'sended' : 'received'}`}
+            >
+              <div className="content">
+                <p>{message.message}</p>
               </div>
             </div>
-            <Logout />
-          </div>
-          <div className="chat-messages">
-            {messages.map((message) => (
-              <div
-                ref={scrollRef}
-                key={message._id || uuidv4()}
-                className={`message ${message.fromSelf ? 'sended' : 'received'}`}
-              >
-                <div className="content">
-                  <p>{message.message}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-          <ChatInput handleSendMsg={handleSendMsg} />
-        </Container>
-      )}
-    </>
+          ))}
+        </div>
+
+        <ChatInput handleSendMsg={handleSendMsg} />
+      </Container>
+    )
   );
 };
 
 const Container = styled.div`
-  padding-top: 1rem;
   display: grid;
   grid-template-rows: 10% 78% 12%;
   gap: 0.1rem;
   overflow: hidden;
+  padding-top: 1rem;
 
   @media screen and (min-width: 720px) and (max-width: 1080px) {
     grid-template-rows: 15% 70% 15%;
@@ -120,21 +138,17 @@ const Container = styled.div`
     justify-content: space-between;
     align-items: center;
     padding: 0 2rem;
-  }
 
-  .user-details {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
+    .user-details {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
 
-    .avatar {
-      img {
+      .avatar img {
         height: 3rem;
       }
-    }
 
-    .username {
-      h3 {
+      .username h3 {
         color: white;
       }
     }
@@ -146,14 +160,13 @@ const Container = styled.div`
     flex-direction: column;
     gap: 1rem;
     overflow-y: auto;
-    height: 60vh;
+    scrollbar-width: thin;
 
     &::-webkit-scrollbar {
       width: 0.2rem;
 
       &-thumb {
         background-color: #ffffff39;
-        width: 0.1rem;
         border-radius: 1rem;
       }
     }
@@ -163,7 +176,7 @@ const Container = styled.div`
       align-items: center;
 
       .content {
-        max-width: 40%;
+        max-width: 45%;
         overflow-wrap: break-word;
         padding: 1rem;
         font-size: 1.1rem;

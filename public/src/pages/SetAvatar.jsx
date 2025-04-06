@@ -11,7 +11,7 @@ const SetAvatar = () => {
   const navigate = useNavigate();
   const [avatars, setAvatars] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedAvatar, setSelectedAvatar] = useState(undefined);
+  const [selectedAvatar, setSelectedAvatar] = useState(null);
 
   const toastOptions = {
     position: "bottom-right",
@@ -20,30 +20,63 @@ const SetAvatar = () => {
     draggable: true,
     theme: "dark",
   };
+
   useEffect(() => {
-      if (!localStorage.getItem('chat-app-user')) {
-        navigate('/login');
+    const checkLogin = () => {
+      if (!localStorage.getItem("chat-app-user")) {
+        navigate("/login");
       }
-    });
+    };
+    checkLogin();
+  }, [navigate]);
+
+  useEffect(() => {
+    const fetchAvatars = async () => {
+      try {
+        const data = [];
+        for (let i = 0; i < 4; i++) {
+          const randomId = Math.floor(Math.random() * 1000);
+          const response = await axios.get(`http://localhost:5000/api/avatar/${randomId}`, {
+            responseType: "arraybuffer",
+          });
+          const base64 = btoa(
+            new Uint8Array(response.data).reduce(
+              (data, byte) => data + String.fromCharCode(byte),
+              ""
+            )
+          );
+          data.push(base64);
+        }
+        setAvatars(data);
+        setIsLoading(false);
+      } catch (error) {
+        console.error("❌ Error loading avatars:", error);
+        toast.error("Failed to load avatars. Please try again.", toastOptions);
+      }
+    };
+
+    fetchAvatars();
+  }, []);
+
   const setProfilePicture = async () => {
-    if (selectedAvatar === undefined) {
+    if (selectedAvatar === null) {
       toast.error("Please select an avatar", toastOptions);
       return;
     }
-  
+
     const userData = localStorage.getItem("chat-app-user");
     if (!userData) {
       toast.error("User not logged in!", toastOptions);
       return;
     }
-  
+
     const user = JSON.parse(userData);
-  
+
     try {
       const { data } = await axios.post(`${setAvatarRoute}/${user._id}`, {
         image: avatars[selectedAvatar],
       });
-  
+
       if (data.isSet) {
         user.isAvatarImageSet = true;
         user.avatarImage = data.image;
@@ -57,35 +90,6 @@ const SetAvatar = () => {
       console.error(err);
     }
   };
-  
-
-  const fetchAvatars = async () => {
-    try {
-      const data = [];
-      for (let i = 0; i < 4; i++) {
-        const randomId = Math.floor(Math.random() * 1000);
-        const response = await axios.get(`http://localhost:5000/api/avatar/${randomId}`, {
-          responseType: "arraybuffer",
-        });
-        const base64 = btoa(
-          new Uint8Array(response.data).reduce(
-            (data, byte) => data + String.fromCharCode(byte),
-            ""
-          )
-        );
-        data.push(base64);
-      }
-      setAvatars(data);
-      setIsLoading(false);
-    } catch (error) {
-      console.error("❌ Error loading avatars:", error);
-      toast.error("Failed to load avatars. Please try again.", toastOptions);
-    }
-  };
-
-  useEffect(() => {
-    fetchAvatars();
-  }, []);
 
   return (
     <>
@@ -105,11 +109,14 @@ const SetAvatar = () => {
                 className={`avatar ${selectedAvatar === index ? "selected" : ""}`}
                 onClick={() => setSelectedAvatar(index)}
               >
-                <img src={`data:image/svg+xml;base64,${avatar}`} alt={`avatar-${index}`} />
+                <img
+                  src={`data:image/svg+xml;base64,${avatar}`}
+                  alt={`avatar-${index}`}
+                />
               </div>
             ))}
           </div>
-          <button className="sumbit-btn" onClick={setProfilePicture}>
+          <button className="submit-btn" onClick={setProfilePicture}>
             Set as Profile Picture
           </button>
         </Container>
@@ -154,6 +161,7 @@ const Container = styled.div`
 
       img {
         height: 6rem;
+        cursor: pointer;
       }
     }
 
@@ -162,7 +170,7 @@ const Container = styled.div`
     }
   }
 
-  .sumbit-btn {
+  .submit-btn {
     background-color: #997af0;
     color: white;
     padding: 1rem 2rem;

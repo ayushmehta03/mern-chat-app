@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import styled from "styled-components";
-import Logo from '../assests/logo.svg';
+import Logo from "../assests/logo.svg";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import axios from "axios";
@@ -21,12 +21,12 @@ function Login() {
     draggable: true,
     theme: "dark",
   };
-  useEffect(() => {
-    if (localStorage.getItem('chat-app-user')) {
-      navigate('/');
-    }
-  });
 
+  useEffect(() => {
+    if (localStorage.getItem("chat-app-user")) {
+      navigate("/");
+    }
+  }, []);
 
   const handleValidation = () => {
     const { username, password } = values;
@@ -40,32 +40,34 @@ function Login() {
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (handleValidation()) {
-      const { password, username } = values;
+      const { username, password } = values;
       try {
-        const { data } = await axios.post(loginRoute, {
-          username,
-          password,
-        });
-  
+        const { data } = await axios.post(
+          loginRoute,
+          { username, password },
+          {
+            headers: {
+              "Content-Type": "application/json",
+            },
+            withCredentials: false,
+          }
+        );
+
         if (data.status === false) {
           toast.error(data.msg, toastOptions);
-        }
-  
-        if (data.status === true) {
+        } else if (data.status === true) {
           localStorage.setItem("chat-app-user", JSON.stringify(data.user));
           navigate("/");
         }
       } catch (err) {
-        // ✅ Extract backend error message safely
         if (err.response && err.response.data && err.response.data.msg) {
           toast.error(err.response.data.msg, toastOptions);
         } else {
-          toast.error("Something went wrong", toastOptions);
+          toast.error("Login failed. Please try again later.", toastOptions);
         }
       }
     }
   };
-  
 
   const handleChange = (event) => {
     setValues({ ...values, [event.target.name]: event.target.value });
