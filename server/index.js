@@ -60,7 +60,7 @@ connectDB();
 const server = http.createServer(app);
 const io = socket(server, {
   cors: {
-    origin: "http://localhost:3000",
+    origin: "https://mern-chat-app-plum-zeta.vercel.app/lo",
     credentials: true,
   },
 });

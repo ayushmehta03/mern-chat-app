@@ -1,19 +1,23 @@
-import React, { useState, useEffect,useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from "axios";
 import styled from "styled-components";
 import { useNavigate } from 'react-router';
-import { allUsersRoute, host } from '../Utils/APIRoutes';
+import { allUsersRoute } from '../Utils/APIRoutes';
 import Contacts from '../components/Contacts';
 import Welcome from '../components/Welcome';
 import ChatContainer from '../components/ChatContainer';
-import io from "socket.io-client"
+import io from "socket.io-client";
+
+const host = "https://ayush-mern-chat-app.onrender.com"; // ✅ updated
+
 const Chat = () => {
-  const socket= useRef()
+  const socket = useRef();
   const navigate = useNavigate();
   const [contact, setContact] = useState([]);
   const [currentUser, setCurrentUser] = useState(undefined);
-  const[currentChat,setcurrentChat]=useState(undefined);
-  const[isLoaded,setIsLoaded]=useState(false)
+  const [currentChat, setCurrentChat] = useState(undefined);
+  const [isLoaded, setIsLoaded] = useState(false);
+
   useEffect(() => {
     const checkUser = async () => {
       if (!localStorage.getItem('chat-app-user')) {
@@ -25,19 +29,20 @@ const Chat = () => {
     };
     checkUser();
   }, [navigate]);
-  useEffect(()=>{
-    if(currentUser) {
-      socket.current=io(host);
-      socket.current.emit("add-user",currentUser._id)
+
+  useEffect(() => {
+    if (currentUser) {
+      socket.current = io(host); // ✅ use your backend link
+      socket.current.emit("add-user", currentUser._id);
     }
-  },[currentUser])
+  }, [currentUser]);
 
   useEffect(() => {
     const getContacts = async () => {
       if (currentUser) {
         if (currentUser.isAvatarImageSet) {
           try {
-            const response = await axios.get(`${allUsersRoute}/${currentUser._id}`);
+            const response = await axios.get(`${host}/api/auth/allusers/${currentUser._id}`); // ✅ full URL
             setContact(response.data);
           } catch (err) {
             console.error("Failed to fetch contacts", err);
@@ -49,34 +54,31 @@ const Chat = () => {
     };
     getContacts();
   }, [currentUser, navigate]);
-  const handleChatChange=(chat)=>{
-    setcurrentChat(chat);
 
-  }
+  const handleChatChange = (chat) => {
+    setCurrentChat(chat);
+  };
 
   return (
     <Container>
       <div className="container">
-        <Contacts contacts={contact} 
-        currentUser={currentUser} 
-        changeChat={handleChatChange}
+        <Contacts
+          contacts={contact}
+          currentUser={currentUser}
+          changeChat={handleChatChange}
         />
         {
-       isLoaded &&   currentChat===undefined? (
-            <Welcome 
-            currentUser={currentUser}
-
-        />
+          isLoaded && currentChat === undefined ? (
+            <Welcome currentUser={currentUser} />
           ) : (
-            <ChatContainer 
-            currentChat={currentChat} 
-            currentUser={currentUser}
-            socket={socket} />
+            <ChatContainer
+              currentChat={currentChat}
+              currentUser={currentUser}
+              socket={socket}
+            />
           )
         }
-
       </div>
-    
     </Container>
   );
 };
