@@ -4,7 +4,7 @@ import Logout from './Logout';
 import ChatInput from './ChatInput';
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
-import { getAllMessageRoute, sendMessageRoute } from '../Utils/APIRoutes';
+import { sendMessageRoute, getAllMessagesRoute } from '../Utils/APIRoutes';
 
 const ChatContainer = ({ currentChat, currentUser, socket }) => {
   const [messages, setMessages] = useState([]);
@@ -14,7 +14,7 @@ const ChatContainer = ({ currentChat, currentUser, socket }) => {
   useEffect(() => {
     const fetchMessages = async () => {
       if (currentChat) {
-        const response = await axios.post(getAllMessageRoute, {
+        const response = await axios.post(getAllMessagesRoute, {
           from: currentUser._id,
           to: currentChat._id,
         });
@@ -49,7 +49,7 @@ const ChatContainer = ({ currentChat, currentUser, socket }) => {
 
   useEffect(() => {
     if (socket.current) {
-      socket.current.off('msg-receive'); // prevents duplicate listeners
+      socket.current.off('msg-receive');
       socket.current.on('msg-receive', (msg) => {
         setArrivalMessage({ fromSelf: false, message: msg });
       });
