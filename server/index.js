@@ -15,8 +15,24 @@ const socket = require("socket.io");
 
 const PORT = process.env.PORT || 5000;
 
+// ✅ Allow both localhost and vercel frontend
+const allowedOrigins = [
+  "http://localhost:3000",
+  "https://mern-chat-app-plum-zeta.vercel.app"
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true,
+}));
+
 // Middlewares
-app.use(cors({ origin: "http://localhost:3000", credentials: true }));
 app.use(express.json());
 app.use(helmet());
 app.use(rateLimit({
@@ -60,7 +76,7 @@ connectDB();
 const server = http.createServer(app);
 const io = socket(server, {
   cors: {
-    origin: "https://mern-chat-app-plum-zeta.vercel.app/lo",
+    origin: allowedOrigins,
     credentials: true,
   },
 });
