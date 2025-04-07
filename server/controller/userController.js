@@ -29,7 +29,6 @@ module.exports.register = async (req, res, next) => {
             password: hashPassword,
         });
 
-        // Remove password before sending response
         const userWithoutPassword = { ...user._doc };
         delete userWithoutPassword.password;
 

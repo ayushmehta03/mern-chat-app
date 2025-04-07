@@ -15,9 +15,7 @@ const socket = require("socket.io");
 
 const PORT = process.env.PORT || 5000;
 
-// ✅ Allow both localhost and vercel frontend
 const allowedOrigins = [
-  "http://localhost:3000",
   "https://mern-chat-app-plum-zeta.vercel.app"
 ];
 
