@@ -8,8 +8,7 @@ import ChatContainer from '../components/ChatContainer';
 import { allUsersRoute } from '../Utils/APIRoutes';
 import io from "socket.io-client";
 
-// 🔄 Local backend host
-const host = "http://localhost:5000"; // ✅ For local development
+const host = "http://localhost:5000";
 
 const Chat = () => {
   const socket = useRef();
@@ -18,6 +17,7 @@ const Chat = () => {
   const [currentUser, setCurrentUser] = useState(undefined);
   const [currentChat, setCurrentChat] = useState(undefined);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [onlineUsers, setOnlineUsers] = useState([]); // 🔹 New state
 
   useEffect(() => {
     const getUser = async () => {
@@ -36,6 +36,10 @@ const Chat = () => {
     if (currentUser) {
       socket.current = io(host);
       socket.current.emit("add-user", currentUser._id);
+
+      socket.current.on("update-online-users", (onlineUserIds) => {
+        setOnlineUsers(onlineUserIds);
+      });
     }
   }, [currentUser]);
 
@@ -62,10 +66,11 @@ const Chat = () => {
   return (
     <Container>
       <div className="container">
-        <Contacts 
-          contacts={contacts} 
-          currentUser={currentUser} 
-          changeChat={handleChatChange} 
+        <Contacts
+          contacts={contacts}
+          currentUser={currentUser}
+          changeChat={handleChatChange}
+          onlineUsers={onlineUsers} // ✅ Pass online user IDs
         />
         {
           isLoaded && !currentChat ? (

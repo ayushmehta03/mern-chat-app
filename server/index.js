@@ -15,10 +15,13 @@ const socket = require("socket.io");
 
 const PORT = process.env.PORT || 5000;
 
+// Allowed Origins
 const allowedOrigins = [
-  "http://localhost:3000" // Your local frontend URL
+  "http://localhost:3000", // Your local frontend URL
+  "https://ayush-mern-chat-app.vercel.app" // Production frontend URL (optional)
 ];
 
+// Middleware
 app.use(cors({
   origin: function (origin, callback) {
     if (!origin || allowedOrigins.includes(origin)) {
@@ -30,7 +33,6 @@ app.use(cors({
   credentials: true,
 }));
 
-// Middlewares
 app.use(express.json());
 app.use(helmet());
 app.use(rateLimit({
@@ -38,11 +40,11 @@ app.use(rateLimit({
   max: 100
 }));
 
-// Routes
+// API Routes
 app.use("/api/auth", userRoutes);
 app.use("/api/messages", messageRoutes);
 
-// Avatar Route
+// Avatar Generator Route
 app.get("/api/avatar/:id", async (req, res) => {
   const avatarId = req.params.id;
   try {
@@ -61,7 +63,7 @@ app.get("/api/avatar/:id", async (req, res) => {
 // MongoDB Connection
 const connectDB = async () => {
   try {
-    await mongoose.connect(process.env.MONGO_URL); // Should point to local DB if running locally
+    await mongoose.connect(process.env.MONGO_URL);
     console.log("✅ DB CONNECTION SUCCESSFUL");
   } catch (err) {
     console.error("❌ DB CONNECTION ERROR:", err.message);
@@ -70,7 +72,7 @@ const connectDB = async () => {
 };
 connectDB();
 
-// Start Server
+// Create HTTP server and Socket.IO instance
 const server = http.createServer(app);
 const io = socket(server, {
   cors: {
@@ -79,13 +81,21 @@ const io = socket(server, {
   },
 });
 
+// Track online users
 global.onlineUsers = new Map();
+
+// Emit current online user IDs to all connected clients
+const emitOnlineUsers = () => {
+  const onlineIds = Array.from(onlineUsers.keys());
+  io.emit("update-online-users", onlineIds);
+};
 
 io.on("connection", (socket) => {
   console.log("⚡ New client connected:", socket.id);
 
   socket.on("add-user", (userId) => {
     onlineUsers.set(userId, socket.id);
+    emitOnlineUsers();
   });
 
   socket.on("send-msg", (data) => {
@@ -107,9 +117,11 @@ io.on("connection", (socket) => {
       }
     }
     console.log("🔌 Client disconnected:", socket.id);
+    emitOnlineUsers();
   });
 });
 
+// Start server
 server.listen(PORT, () => {
   console.log(`🚀 Server started on http://localhost:${PORT}`);
 });

@@ -2,12 +2,11 @@ import React, { useState, useEffect } from 'react';
 import styled from "styled-components";
 import logo from '../assests/logo.svg';
 
-const Contacts = ({ contacts, currentUser, changeChat }) => {
+const Contacts = ({ contacts, currentUser, changeChat, onlineUsers }) => {
   const [currentUserName, setCurrentUserName] = useState(undefined);
   const [currentUserImage, setCurrentUserImage] = useState(undefined);
   const [currentSelected, setCurrentSelected] = useState(undefined);
-  const [search, setSearch] = useState('');
-  const [filteredContacts, setFilteredContacts] = useState([]);
+  const [updatedContacts, setUpdatedContacts] = useState([]);
 
   useEffect(() => {
     if (currentUser) {
@@ -17,14 +16,12 @@ const Contacts = ({ contacts, currentUser, changeChat }) => {
   }, [currentUser]);
 
   useEffect(() => {
-    setFilteredContacts(
-      contacts
-        .filter(contact =>
-          contact.username.toLowerCase().includes(search.toLowerCase())
-        )
-        .sort((a, b) => a.username.localeCompare(b.username))
-    );
-  }, [contacts, search]);
+    const withOnlineStatus = contacts.map((contact) => ({
+      ...contact,
+      isOnline: onlineUsers?.includes(contact._id),
+    }));
+    setUpdatedContacts(withOnlineStatus);
+  }, [contacts, onlineUsers]);
 
   const changeCurrentChat = (index, contact) => {
     setCurrentSelected(index);
@@ -40,17 +37,8 @@ const Contacts = ({ contacts, currentUser, changeChat }) => {
             <h3>Chatlify</h3>
           </div>
 
-          <div className="search">
-            <input
-              type="text"
-              placeholder="Search contacts..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-
           <div className="contacts">
-            {filteredContacts.map((contact, index) => (
+            {updatedContacts.map((contact, index) => (
               <div
                 className={`contact ${index === currentSelected ? "selected" : ""}`}
                 key={contact._id || index}
@@ -70,11 +58,7 @@ const Contacts = ({ contacts, currentUser, changeChat }) => {
                 <div className="username">
                   <h3>{contact.username}</h3>
                 </div>
-
-                {/* Optional status dot */}
-                {contact.isOnline !== undefined && (
-                  <div className={`status-dot ${contact.isOnline ? 'online' : 'offline'}`}></div>
-                )}
+                <div className={`status-dot ${contact.isOnline ? 'online' : 'offline'}`}></div>
               </div>
             ))}
           </div>
@@ -98,7 +82,7 @@ const Contacts = ({ contacts, currentUser, changeChat }) => {
 
 const Container = styled.div`
   display: grid;
-  grid-template-rows: 10% 10% 65% 15%;
+  grid-template-rows: 10% 75% 15%;
   overflow: hidden;
   background-color: #080420;
 
@@ -113,22 +97,6 @@ const Container = styled.div`
     h3 {
       color: white;
       text-transform: uppercase;
-    }
-  }
-
-  .search {
-    display: flex;
-    justify-content: center;
-    padding: 0 1rem;
-    input {
-      width: 90%;
-      padding: 0.5rem 1rem;
-      border-radius: 0.5rem;
-      border: none;
-      outline: none;
-      font-size: 1rem;
-      background-color: #1a1a2e;
-      color: white;
     }
   }
 
