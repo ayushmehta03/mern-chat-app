@@ -8,7 +8,8 @@ import ChatContainer from '../components/ChatContainer';
 import { allUsersRoute } from '../Utils/APIRoutes';
 import io from "socket.io-client";
 
-const host = "https://ayush-mern-chat-app.onrender.com"; // ✅ Use same host for socket and API
+// 🔄 Local backend host
+const host = "http://localhost:5000"; // ✅ For local development
 
 const Chat = () => {
   const socket = useRef();

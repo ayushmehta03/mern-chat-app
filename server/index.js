@@ -16,7 +16,7 @@ const socket = require("socket.io");
 const PORT = process.env.PORT || 5000;
 
 const allowedOrigins = [
-  "https://mern-chat-app-plum-zeta.vercel.app"
+  "http://localhost:3000" // Your local frontend URL
 ];
 
 app.use(cors({
@@ -34,8 +34,8 @@ app.use(cors({
 app.use(express.json());
 app.use(helmet());
 app.use(rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
+  windowMs: 15 * 60 * 1000,
+  max: 100
 }));
 
 // Routes
@@ -61,7 +61,7 @@ app.get("/api/avatar/:id", async (req, res) => {
 // MongoDB Connection
 const connectDB = async () => {
   try {
-    await mongoose.connect(process.env.MONGO_URL);
+    await mongoose.connect(process.env.MONGO_URL); // Should point to local DB if running locally
     console.log("✅ DB CONNECTION SUCCESSFUL");
   } catch (err) {
     console.error("❌ DB CONNECTION ERROR:", err.message);
@@ -111,7 +111,7 @@ io.on("connection", (socket) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`🚀 Server started on port ${PORT}`);
+  console.log(`🚀 Server started on http://localhost:${PORT}`);
 });
 
 // Graceful Shutdown
