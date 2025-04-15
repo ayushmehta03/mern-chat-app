@@ -17,8 +17,7 @@ const PORT = process.env.PORT || 5000;
 
 // Allowed Origins
 const allowedOrigins = [
-  "http://localhost:3000", // Your local frontend URL
-  "https://ayush-mern-chat-app.vercel.app" // Production frontend URL (optional)
+  "http://localhost:3000"
 ];
 
 // Middleware
